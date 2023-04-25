@@ -27,3 +27,6 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 INCLUDEPATH += E:\Coding\OpenCV\opencv-build\install\include
 LIBS += E:\Coding\OpenCV\opencv-build\lib\libopencv_*.a
+
+RESOURCES += \
+    res.qrc
