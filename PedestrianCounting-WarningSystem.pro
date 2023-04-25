@@ -11,14 +11,17 @@ CONFIG += c++11
 SOURCES += \
     main.cpp \
     mainwindow.cpp \
+    mapdisplay.cpp \
     yolov5_detector.cpp
 
 HEADERS += \
     mainwindow.h \
+    mapdisplay.h \
     yolov5_detector.h
 
 FORMS += \
-    mainwindow.ui
+    mainwindow.ui \
+    mapdisplay.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

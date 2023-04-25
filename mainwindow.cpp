@@ -17,6 +17,9 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_pushButton_clicked()
 {
+    x = new MapDisplay;
+    x->show();
+    this->close();
     std::cout << "Enter MapDisplay System!" << std::endl;
 }
 

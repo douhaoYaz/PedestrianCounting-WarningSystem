@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include "mapdisplay.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -20,5 +21,6 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    MapDisplay *x;
 };
 #endif // MAINWINDOW_H
