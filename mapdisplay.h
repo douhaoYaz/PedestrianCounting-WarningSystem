@@ -15,6 +15,11 @@ public:
     explicit MapDisplay(QWidget *parent = nullptr);
     ~MapDisplay();
 
+    QString pic;
+
+private slots:
+    void on_pushButton_clicked();
+
 private:
     Ui::MapDisplay *ui;
 };

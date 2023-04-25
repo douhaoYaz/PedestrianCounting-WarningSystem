@@ -9,12 +9,14 @@ CONFIG += c++11
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    detectpoint.cpp \
     main.cpp \
     mainwindow.cpp \
     mapdisplay.cpp \
     yolov5_detector.cpp
 
 HEADERS += \
+    detectpoint.h \
     mainwindow.h \
     mapdisplay.h \
     yolov5_detector.h
