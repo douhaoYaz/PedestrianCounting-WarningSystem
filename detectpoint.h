@@ -7,6 +7,7 @@
 #include <QPoint>
 #include <QString>
 #include "yolov5_detector.h"
+#include "queue_xqqueue.h"
 
 using namespace std;
 
@@ -24,6 +25,7 @@ public:
     QString label;              // 监测点的显示标签名
     Mat frame;                  // 要输入到YOLO推理的帧
 //    int results[5] = {0, 0, 0, 0, 0};    // 临时存储检测结果（人流量数据）
+    xq::xqQueue<int> *results;   // 临时存储检测结果（人流量数据）
 
 };
 

@@ -19,6 +19,7 @@ HEADERS += \
     detectpoint.h \
     mainwindow.h \
     mapdisplay.h \
+    queue_xqqueue.h \
     yolov5_detector.h
 
 FORMS += \

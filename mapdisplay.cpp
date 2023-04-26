@@ -119,7 +119,7 @@ void MapDisplay::startDetect()
         QMessageBox::warning(this, "警告", "无法打开监测点视频源");
     }
     else{                       // 成功打开视频
-        int count=0, frameRate=100, result;     // 计数、帧数截取间隔、检测结果
+        int count=0, frameRate=80, result;     // 计数、帧数截取间隔、检测结果
         while(true){
             if(capture.read(frame)){    // 视频帧流还未全部读取完
                 count++;
@@ -129,6 +129,7 @@ void MapDisplay::startDetect()
                     // TODO: 模型推理，存储检测结果
                     result = detectPoint_group[0]->detect(detectPoint_group[0]->frame);
                     // 优化：detect()里大部分时候不需要调用drawPred()，想办法把detect()改写成可以分离出drawPred()的形式
+                    detectPoint_group[0]->results->insert(result);
                 }
             }
             else{                       // 已全部读取完视频帧流
@@ -136,6 +137,7 @@ void MapDisplay::startDetect()
                 break;
             }
         }
+        detectPoint_group[0]->results->print_new2old();
         namedWindow("Pedestiran Detecting", cv::WINDOW_AUTOSIZE);
         imshow("Pedestiran Detecting", detectPoint_group[0]->frame);
         capture.release();
