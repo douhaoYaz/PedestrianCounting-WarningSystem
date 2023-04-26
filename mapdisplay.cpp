@@ -8,6 +8,8 @@
 #include <iostream>
 #include <QFont>
 #include <QDebug>
+#include <opencv2/videoio.hpp>
+#include <QMessageBox>
 
 MapDisplay::MapDisplay(QWidget *parent) :
     QMainWindow(parent),
@@ -60,12 +62,24 @@ void MapDisplay::mousePressEvent(QMouseEvent *event)
             addDetectPoint(event->pos());
 //            std::cout << "监测点的坐标为：" << detectPoint_group[count_detectPoint-1]->pos.x() << detectPoint_group[count_detectPoint-1]->pos.y() << std::endl;
             update();
+            break;
         case 2:     // 编辑监测点
-            qDebug() << "Test case 2";
-            std::cout << "Test case 2";
+//            qDebug() << "Test case 2";
+//            std::cout << "Test case 2";
             // TODO: 判断鼠标事件坐标是否位于某监测点半径之内，若是，则表示选中该监测点，然后弹窗对话框让用户输入该监测点的视频源、人流量上限
+            break;
         case 3:     // 删除监测点
-            std::cout << "Test case 3";
+//            std::cout << "Test case 3";
+            // TODO: 与case2类似
+            break;
+        case 4:     // 开始检测
+            // 考虑是否使用多线程
+            // 指定间隔截取视频帧作为模型输入
+            // 用一个for循环使每个监测点相继进行推理？
+            string imgpath = "F:/Work and Learn/Projects/QtProject/PedestrianCounting-WarningSystem/bus.jpg";
+            Mat srcimg = imread(imgpath);
+            detectPoint_group[0]->detect(srcimg);
+            break;
         }
     }
 }
@@ -78,14 +92,54 @@ void MapDisplay::on_pushButton_addDetectPoint_clicked()
 
 void MapDisplay::addDetectPoint(QPoint pos)             // 添加监测点
 {
+    Net_config yolo_nets = {0.5, 0.5, 0.5, "yolov5s"};
 //    DetectPoint *detectPoint = new DetectPoint();
-    std::shared_ptr<DetectPoint> dp(new DetectPoint());
+    std::shared_ptr<DetectPoint> dp(new DetectPoint(yolo_nets));
     dp->pos = pos;                                      // 将监测点坐标设置为 鼠标点击位置的坐标
     dp->label = QString::number(count_detectPoint+1);   // 将监测点显示的标签名默认设置为它的序号
     this->detectPoint_group.push_back(dp);              // 将新建的这个监测点智能指针添加到监测点智能指针vector容器中
     this->count_detectPoint++;                          // 已有监测点个数加1
     // 画一个dialog来接收用户输入的监测点的视频源、人流量上限
 
+}
+
+void MapDisplay::startDetect()
+{
+    // 如何添加多线程？
+    // 两个任务：1. 对视频源间隔取帧  2.模型推理  3.检测结果显示（数据库）
+
+//    for(int i=0; i<=count_detectPoint; i++){    // 遍历已有监测点
+//    }
+    detectPoint_group[0]->sourcePath = "F:/Work and Learn/Projects/QtProject/PedestrianCounting-WarningSystem/CampusStreet.mp4";
+
+    VideoCapture capture;
+    Mat frame;
+    frame = capture.open(detectPoint_group[0]->sourcePath.toStdString());       // 读取该监测点的视频源
+    if(!capture.isOpened()){    // 无法打开视频
+        QMessageBox::warning(this, "警告", "无法打开监测点视频源");
+    }
+    else{                       // 成功打开视频
+        int count=0, frameRate=100, result;     // 计数、帧数截取间隔、检测结果
+        while(true){
+            if(capture.read(frame)){    // 视频帧流还未全部读取完
+                count++;
+                if(count % frameRate == 0){     // 够钟截取一帧
+                    detectPoint_group[0]->frame = frame.clone();    // 将视频流当前帧 深拷贝给 该监测点作为模型输入的帧
+                    qDebug() << "读取" << count / frameRate << "帧";
+                    // TODO: 模型推理，存储检测结果
+                    result = detectPoint_group[0]->detect(detectPoint_group[0]->frame);
+                    // 优化：detect()里大部分时候不需要调用drawPred()，想办法把detect()改写成可以分离出drawPred()的形式
+                }
+            }
+            else{                       // 已全部读取完视频帧流
+                QMessageBox::information(this, "监测点视频源状态", "已全部读取完视频帧流");
+                break;
+            }
+        }
+        namedWindow("Pedestiran Detecting", cv::WINDOW_AUTOSIZE);
+        imshow("Pedestiran Detecting", detectPoint_group[0]->frame);
+        capture.release();
+    }
 }
 
 
@@ -103,6 +157,7 @@ void MapDisplay::on_pushButton_delDetectPoint_clicked()
 
 void MapDisplay::on_pushButton_startDetect_clicked()
 {
-    this->type_mouseEvent = 4;
+//    this->type_mouseEvent = 4;
+    startDetect();
 }
 

@@ -38,6 +38,7 @@ private:
     std::vector<std::shared_ptr<DetectPoint>> detectPoint_group;    // 存储 指向监测点的智能指针 的vector容器
 
     void addDetectPoint(QPoint pos);    // 添加监测点
+    void startDetect();                 // 开始检测
 
     // QWidget interface
 protected:

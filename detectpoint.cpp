@@ -1,6 +1,6 @@
 #include "detectpoint.h"
 
-DetectPoint::DetectPoint()
+DetectPoint::DetectPoint(Net_config config):YOLOv5_Detector(config)
 {
 
 }

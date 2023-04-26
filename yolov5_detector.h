@@ -26,7 +26,7 @@ class YOLOv5_Detector
 {
 public:
     YOLOv5_Detector(Net_config config);
-    void detect(Mat& frame);
+    int detect(Mat& frame);
 
 private:
     Net net;

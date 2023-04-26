@@ -46,7 +46,7 @@ void YOLOv5_Detector::sigmoid(Mat* out, int length)
     }
 }
 
-void YOLOv5_Detector::detect(Mat& frame)
+int YOLOv5_Detector::detect(Mat& frame)
 {
     Mat blob;
     blobFromImage(frame, blob, 1 / 255.0, Size(this->inpWidth, this->inpHeight), Scalar(0, 0, 0), true, false);
@@ -122,4 +122,6 @@ void YOLOv5_Detector::detect(Mat& frame)
         this->drawPred(classIds[idx], confidences[idx], box.x, box.y,
             box.x + box.width, box.y + box.height, frame);
     }
+
+    return indices.size();
 }
