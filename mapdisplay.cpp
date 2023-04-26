@@ -34,6 +34,17 @@ void MapDisplay::on_pushButton_clicked()    // 导入地图
     update();
 }
 
+double MapDisplay::dist(QPoint a, QPoint b)//计算两点间距离的函数
+{
+    return sqrt((a.x() - b.x()) * (a.x() - b.x()) + (a.y() - b.y()) * (a.y() - b.y()));
+}
+
+bool MapDisplay::isin(QPoint x, QPoint y, int n)//判断鼠标光标是否点击成功（半径n的圆域范围内）
+{
+    if (dist(x, y) <= n) return true;
+    else return false;
+}
+
 void MapDisplay::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);//画笔，this为当前窗口
@@ -130,6 +141,10 @@ void MapDisplay::startDetect()
                     result = detectPoint_group[0]->detect(detectPoint_group[0]->frame);
                     // 优化：detect()里大部分时候不需要调用drawPred()，想办法把detect()改写成可以分离出drawPred()的形式
                     detectPoint_group[0]->results->insert(result);
+                    ui->listWidget->addItem("监测点1："+ QString::number(result) + "人");
+//                    ui->listWidget->repaint();
+//                    update();
+//                    ui->listWidget->viewport()->update();
                 }
             }
             else{                       // 已全部读取完视频帧流
@@ -137,7 +152,7 @@ void MapDisplay::startDetect()
                 break;
             }
         }
-        detectPoint_group[0]->results->print_new2old();
+        detectPoint_group[0]->results->print_new2old();     // 把监测点的历史人流量数据按新到旧的顺序输出
         namedWindow("Pedestiran Detecting", cv::WINDOW_AUTOSIZE);
         imshow("Pedestiran Detecting", detectPoint_group[0]->frame);
         capture.release();

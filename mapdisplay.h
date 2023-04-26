@@ -5,6 +5,7 @@
 #include <vector>
 #include "detectpoint.h"
 #include <memory>
+#include <cmath>
 
 namespace Ui {
 class MapDisplay;
@@ -39,6 +40,8 @@ private:
 
     void addDetectPoint(QPoint pos);    // 添加监测点
     void startDetect();                 // 开始检测
+    bool isin(QPoint x, QPoint y, int n = 10);
+    double dist(QPoint a, QPoint b);
 
     // QWidget interface
 protected:
