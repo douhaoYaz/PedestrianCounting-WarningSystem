@@ -10,6 +10,7 @@ CONFIG += c++11
 
 SOURCES += \
     detectpoint.cpp \
+    dialog_dpinfo.cpp \
     main.cpp \
     mainwindow.cpp \
     mapdisplay.cpp \
@@ -17,12 +18,14 @@ SOURCES += \
 
 HEADERS += \
     detectpoint.h \
+    dialog_dpinfo.h \
     mainwindow.h \
     mapdisplay.h \
     queue_xqqueue.h \
     yolov5_detector.h
 
 FORMS += \
+    dialog_dpinfo.ui \
     mainwindow.ui \
     mapdisplay.ui
 
