@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/images">
         <file>background.jfif</file>
+        <file>DgutMap.png</file>
     </qresource>
 </RCC>
