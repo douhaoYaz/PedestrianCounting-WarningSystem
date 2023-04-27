@@ -2,5 +2,6 @@
     <qresource prefix="/images">
         <file>background.jfif</file>
         <file>DgutMap.png</file>
+        <file>DGUT_Map1.png</file>
     </qresource>
 </RCC>

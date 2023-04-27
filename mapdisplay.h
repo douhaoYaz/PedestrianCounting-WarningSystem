@@ -45,12 +45,14 @@ private:
     QString sourcePath_temp;            // 临时存放 接收到对话框dialog的视频源路径
     int volume_detecting_temp;               // 临时存放 接收到对话框dialog的人流量上限
     QString label_temp;                 // 临时存放 接收到对话框dialog的标签名
+    int checked_detectPoint = -1;            // 表示当前被选中的监测点序号
 
     void addDetectPoint(QPoint pos);    // 添加监测点
     void startDetect();                 // 开始检测
     bool isin(QPoint x, QPoint y, int n = 10);
     double dist(QPoint a, QPoint b);
-    void setDetectPointInfo(int index);     // 设置监测点信息
+    void setDetectPointInfo(int checked_detectPoint);     // 设置监测点信息
+    void updateCheckedDetectPoint(QPoint mousePos);   // 根据鼠标点击坐标确定当前被选中的监测点序号
 
     // QWidget interface
 protected:

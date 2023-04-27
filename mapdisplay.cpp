@@ -70,33 +70,43 @@ void MapDisplay::mousePressEvent(QMouseEvent *event)
         switch (type_mouseEvent)
         {
         case 1:     // 添加监测点
-            if(event->pos().x() >= 190 && event->pos().x() <= 1190 && event->pos().y()>70 && event->pos().y() <= 770){      // 判断所加的点是否在窗口范围内(本来不想加这个判断的，但是switch case语句里不能新建变量，而我需要新建一个变量flag，在新添加的监测点离某监测点距离太近时 取消添加，于是要用一个flag来帮助跳出swich case
-                int flag=0;
-                for(int i=0; i<count_detectPoint; i++){
-                    if(isin(event->pos(), detectPoint_group[i]->pos, 20)){          // 鼠标事件坐标位于监测点i的半径之内，表示要新添加的监测点 离监测点i距离太近
-                        QMessageBox::warning(this, "警告", "添加点离监测点_" + detectPoint_group[i]->label + "距离太近，请重新添加");
-                        flag=1;
-                        break;
-                    }
-                }
-                if(flag==1) break;
-                addDetectPoint(event->pos());       // 添加监测点，总监测点数+1
-                setDetectPointInfo(count_detectPoint-1);    // 为新添加的监测点设置信息
-                update();
-            }
+//            if(event->pos().x() >= 190 && event->pos().x() <= 1190 && event->pos().y()>70 && event->pos().y() <= 770){      // 判断所加的点是否在窗口范围内(本来不想加这个判断的，但是switch case语句里不能新建变量，而我需要新建一个变量flag，在新添加的监测点离某监测点距离太近时 取消添加，于是要用一个flag来帮助跳出swich case
+//                int flag=0;
+//                for(int i=0; i<count_detectPoint; i++){
+//                    if(isin(event->pos(), detectPoint_group[i]->pos, 20)){          // 鼠标事件坐标位于监测点i的半径之内，表示要新添加的监测点 离监测点i距离太近
+//                        QMessageBox::warning(this, "警告", "添加点离监测点_" + detectPoint_group[i]->label + "距离太近，请重新添加");
+//                        flag=1;
+//                        break;
+//                    }
+//                }
+//                if(flag==1) break;
+//                addDetectPoint(event->pos());       // 添加监测点，总监测点数+1
+//                setDetectPointInfo(count_detectPoint-1);    // 为新添加的监测点设置信息
+//                update();
+//            }
+            updateCheckedDetectPoint(event->pos());
+            if(checked_detectPoint == -1) break;        // 在updateCheckedDetectPoint()函数里对checked_detectPoint进行处理，若为非-1则符合添加条件，若为-1则不符合添加条件
+            addDetectPoint(event->pos());
+            update();
+            qDebug() << "count_detectPoint: " << count_detectPoint;
+            checked_detectPoint = count_detectPoint-1;  // 更新当前选中点为刚刚添加的点
+            setDetectPointInfo(checked_detectPoint);
+            checked_detectPoint = -1;       // 结束前重置为-1复位，表示未选中
             break;
         case 2:     // 编辑监测点
             // TODO: 判断鼠标事件坐标是否位于某监测点半径之内，若是，则表示选中该监测点，然后弹窗对话框让用户输入该监测点的视频源、人流量上限
-            for(int i=0; i<count_detectPoint; i++){
-                if(isin(event->pos(), detectPoint_group[i]->pos, 20)){      // 鼠标事件坐标位于监测点i的半径之内，表示选中该监测点i
-                    setDetectPointInfo(i);
-                    return;
-                }
-//                else{       // 未选中监测点
-//                    QMessageBox::warning(this, "警告", "未选中监测点");
+//            for(int i=0; i<count_detectPoint; i++){
+//                if(isin(event->pos(), detectPoint_group[i]->pos, 20)){      // 鼠标事件坐标位于监测点i的半径之内，表示选中该监测点i
+//                    setDetectPointInfo(i);
+//                    return;
 //                }
+//            }
+//            QMessageBox::warning(this, "警告", "未选中监测点");
+            updateCheckedDetectPoint(event->pos());         // 判断鼠标事件坐标是否位于某监测点半径之内，若是，则将当前选中点checked_detectPoint的值置为该点的序号，表示当前选中该监测点
+            if(checked_detectPoint != -1){
+                setDetectPointInfo(checked_detectPoint);    // 设置监测点信息
+                checked_detectPoint = -1;       // 结束前重置为-1复位，表示未选中
             }
-            QMessageBox::warning(this, "警告", "未选中监测点");
             break;
         case 3:     // 删除监测点
 //            std::cout << "Test case 3";
@@ -144,37 +154,40 @@ void MapDisplay::startDetect()
 
     VideoCapture capture;
     Mat frame;
-    frame = capture.open(detectPoint_group[0]->sourcePath.toStdString());       // 读取该监测点的视频源
-    if(!capture.isOpened()){    // 无法打开视频
-        QMessageBox::warning(this, "警告", "无法打开监测点视频源");
-    }
-    else{                       // 成功打开视频
-        int count=0, frameRate=80, result;     // 计数、帧数截取间隔、检测结果
-        while(true){
-            if(capture.read(frame)){    // 视频帧流还未全部读取完
-                count++;
-                if(count % frameRate == 0){     // 够钟截取一帧
-                    detectPoint_group[0]->frame = frame.clone();    // 将视频流当前帧 深拷贝给 该监测点作为模型输入的帧
-                    qDebug() << "读取" << count / frameRate << "帧";
-                    // TODO: 模型推理，存储检测结果
-                    result = detectPoint_group[0]->detect(detectPoint_group[0]->frame);
-                    // 优化：detect()里大部分时候不需要调用drawPred()，想办法把detect()改写成可以分离出drawPred()的形式
-                    detectPoint_group[0]->results->insert(result);
-                    ui->listWidget->addItem("监测点1："+ QString::number(result) + "人");
-//                    ui->listWidget->repaint();
-//                    update();
-//                    ui->listWidget->viewport()->update();
+    for(int i=0; i<count_detectPoint; i++){
+        frame = capture.open(detectPoint_group[i]->sourcePath.toStdString());       // 读取该监测点的视频源
+        if(!capture.isOpened()){    // 无法打开视频
+            QMessageBox::warning(this, "警告", "无法打开监测点视频源，请编辑监测点视频源后重新开始检测");
+    //        return;
+        }
+        else{                       // 成功打开视频
+            int count=0, frameRate=20, result;     // 计数、帧数截取间隔、检测结果
+            while(true){
+                if(capture.read(frame)){    // 视频帧流还未全部读取完
+                    count++;
+                    if(count % frameRate == 0){     // 够钟截取一帧
+                        detectPoint_group[i]->frame = frame.clone();    // 将视频流当前帧 深拷贝给 该监测点作为模型输入的帧
+                        qDebug() << "读取" << count / frameRate << "帧";
+                        // TODO: 模型推理，存储检测结果
+                        result = detectPoint_group[i]->detect(detectPoint_group[i]->frame);
+                        // 优化：detect()里大部分时候不需要调用drawPred()，想办法把detect()改写成可以分离出drawPred()的形式
+                        detectPoint_group[i]->results->insert(result);
+                        ui->listWidget->addItem("监测点_" + detectPoint_group[i]->label + ": "+ QString::number(result) + "人");
+    //                    ui->listWidget->repaint();
+    //                    update();
+    //                    ui->listWidget->viewport()->update();
+                    }
+                }
+                else{                       // 已全部读取完视频帧流
+                    QMessageBox::information(this, "监测点视频源状态", "已全部读取完视频帧流");
+                    break;
                 }
             }
-            else{                       // 已全部读取完视频帧流
-                QMessageBox::information(this, "监测点视频源状态", "已全部读取完视频帧流");
-                break;
-            }
+            detectPoint_group[i]->results->print_new2old();     // 把监测点的历史人流量数据按新到旧的顺序输出
+            namedWindow("Pedestiran Detecting", cv::WINDOW_AUTOSIZE);
+            imshow("Pedestiran Detecting", detectPoint_group[i]->frame);
+            capture.release();
         }
-        detectPoint_group[0]->results->print_new2old();     // 把监测点的历史人流量数据按新到旧的顺序输出
-        namedWindow("Pedestiran Detecting", cv::WINDOW_AUTOSIZE);
-        imshow("Pedestiran Detecting", detectPoint_group[0]->frame);
-        capture.release();
     }
 }
 
@@ -199,13 +212,16 @@ void MapDisplay::on_pushButton_startDetect_clicked()
 
 void MapDisplay::receiveData(QString sourcePath, QString pedestrianMaxium, QString label)
 {
-    this->sourcePath_temp = sourcePath;
-    this->volume_detecting_temp = pedestrianMaxium.toInt();
-    this->label_temp = label;
+//    this->sourcePath_temp = sourcePath;
+//    this->volume_detecting_temp = pedestrianMaxium.toInt();
+//    this->label_temp = label;
+    detectPoint_group[checked_detectPoint]->sourcePath = sourcePath;    // 将从对话框接收到的 视频源 赋给当前选中点的视频源
+    detectPoint_group[checked_detectPoint]->volume_warning = pedestrianMaxium.toInt();      // 将从对话框接收到的 人流量上限 赋给当前选中点的预警值
+    detectPoint_group[checked_detectPoint]->label = label;              // 将从对话框接收到的 标签名 赋给当前选中点的标签名
 }
 
 
-void MapDisplay::setDetectPointInfo(int index)
+void MapDisplay::setDetectPointInfo(int checked_detectPoint)
 {
     dialog = new Dialog_dpInfo();
     // 待优化这个槽函数，如何使得槽函数接收到的值能直接赋给detectPoint_group[i]中
@@ -213,10 +229,52 @@ void MapDisplay::setDetectPointInfo(int index)
     if(dialog->exec() == QDialog::Accepted){
     }
     delete dialog;
-    detectPoint_group[index]->sourcePath = this->sourcePath_temp;
-    detectPoint_group[index]->volume_warning = this->volume_detecting_temp;
-    detectPoint_group[index]->label = this->label_temp;
-    qDebug() << "sourcePath:  " << detectPoint_group[index]->sourcePath;
-    qDebug() << "pedestrian maxium:  " << detectPoint_group[index]->volume_warning;
-    qDebug() << "label:  " << detectPoint_group[index]->label;
+//    detectPoint_group[index]->sourcePath = this->sourcePath_temp;
+//    detectPoint_group[index]->volume_warning = this->volume_detecting_temp;
+//    detectPoint_group[index]->label = this->label_temp;
+    qDebug() << "sourcePath:  " << detectPoint_group[checked_detectPoint]->sourcePath;
+    qDebug() << "pedestrian maxium:  " << detectPoint_group[checked_detectPoint]->volume_warning;
+    qDebug() << "label:  " << detectPoint_group[checked_detectPoint]->label;
+}
+
+void MapDisplay::updateCheckedDetectPoint(QPoint mousePos)
+{
+//    for(int i=0; i<count_detectPoint; i++){
+//        if(isin(mousePos, detectPoint_group[i]->pos, 20)){
+//            checked_detectPoint = i;
+//            return;
+//        }
+//    }
+//    QMessageBox::warning(this, "警告", "未选中监测点");
+
+//    if(type_mouseEvent == 1){
+//        for(int i=0; i<count_detectPoint; i++){
+//            if(isin(mousePos, detectPoint_group[i]->pos, 20)){
+//                QMessageBox::warning(this, "警告", "添加点离监测点_" + detectPoint_group[i]->label + "距离太近，请重新添加");
+//                return;
+//            }
+//        }
+//        checked_detectPoint = -1;
+//    }
+
+    switch (type_mouseEvent){
+    case 1:         // 添加监测点时 判断添加点是否与已有点重合 或是否初次添加点
+        for(int i=0; i<count_detectPoint; i++){
+            if(isin(mousePos, detectPoint_group[i]->pos, 20)){
+                QMessageBox::warning(this, "警告", "添加点离监测点_" + detectPoint_group[i]->label + "距离太近，请重新添加");
+                return;
+            }
+        }
+        checked_detectPoint = 0;        // 符合添加条件，只要将checked_detectPoint置为非-1即可，这里就随便选择置0
+        break;
+    case 2:         // 编辑监测点时 判断是否选中监测点
+        for(int i=0; i<count_detectPoint; i++){
+            if(isin(mousePos, detectPoint_group[i]->pos, 20)){
+                checked_detectPoint = i;
+                return;
+            }
+        }
+        QMessageBox::warning(this, "警告", "未选中监测点");
+        break;
+    }
 }
