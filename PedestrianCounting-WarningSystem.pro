@@ -14,6 +14,7 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     mapdisplay.cpp \
+    qyolodetectthread.cpp \
     yolov5_detector.cpp
 
 HEADERS += \
@@ -22,6 +23,7 @@ HEADERS += \
     mainwindow.h \
     mapdisplay.h \
     queue_xqqueue.h \
+    qyolodetectthread.h \
     yolov5_detector.h
 
 FORMS += \

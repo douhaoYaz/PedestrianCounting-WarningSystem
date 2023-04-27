@@ -30,6 +30,8 @@ namespace xq {
         void print();
 
         void print_new2old();
+
+        T getRear();
     };
 
     template<typename T>
@@ -109,6 +111,14 @@ namespace xq {
             cout << base[traversal] << ' ';
         }
         cout << endl;
+    }
+
+    template<typename T>
+    T xqQueue<T>::getRear(){    // 使用前需手动判断非空
+        if (isEmpty()) {
+            cout << "queue is empty!" << endl;
+        }
+        return base[rear-1];
     }
 }
 

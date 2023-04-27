@@ -118,6 +118,19 @@
      <string>开始检测</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="pushButton_endDetect">
+    <property name="geometry">
+     <rect>
+      <x>910</x>
+      <y>790</y>
+      <width>89</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>结束检测</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>

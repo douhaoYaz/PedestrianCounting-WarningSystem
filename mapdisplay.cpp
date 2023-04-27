@@ -16,6 +16,8 @@ MapDisplay::MapDisplay(QWidget *parent) :
     ui(new Ui::MapDisplay)
 {
     ui->setupUi(this);
+
+    connect(&mTimer, SIGNAL(timeout()), this, SLOT(on_mTimer_timeout()));
 }
 
 MapDisplay::~MapDisplay()
@@ -148,47 +150,57 @@ void MapDisplay::startDetect()
     // 如何添加多线程？
     // 两个任务：1. 对视频源间隔取帧  2.模型推理  3.检测结果显示（数据库）
 
-//    for(int i=0; i<=count_detectPoint; i++){    // 遍历已有监测点
-//    }
 //    detectPoint_group[0]->sourcePath = "F:/Work and Learn/Projects/QtProject/PedestrianCounting-WarningSystem/CampusStreet.mp4";
 
-    VideoCapture capture;
-    Mat frame;
+
+    yoloDetectThreads.clear();      // 在一次开始检测之后，若有新增点，就需要清空vector，再重新逐个push_back
     for(int i=0; i<count_detectPoint; i++){
-        frame = capture.open(detectPoint_group[i]->sourcePath.toStdString());       // 读取该监测点的视频源
-        if(!capture.isOpened()){    // 无法打开视频
-            QMessageBox::warning(this, "警告", "无法打开监测点视频源，请编辑监测点视频源后重新开始检测");
-    //        return;
-        }
-        else{                       // 成功打开视频
-            int count=0, frameRate=20, result;     // 计数、帧数截取间隔、检测结果
-            while(true){
-                if(capture.read(frame)){    // 视频帧流还未全部读取完
-                    count++;
-                    if(count % frameRate == 0){     // 够钟截取一帧
-                        detectPoint_group[i]->frame = frame.clone();    // 将视频流当前帧 深拷贝给 该监测点作为模型输入的帧
-                        qDebug() << "读取" << count / frameRate << "帧";
-                        // TODO: 模型推理，存储检测结果
-                        result = detectPoint_group[i]->detect(detectPoint_group[i]->frame);
-                        // 优化：detect()里大部分时候不需要调用drawPred()，想办法把detect()改写成可以分离出drawPred()的形式
-                        detectPoint_group[i]->results->insert(result);
-                        ui->listWidget->addItem("监测点_" + detectPoint_group[i]->label + ": "+ QString::number(result) + "人");
-    //                    ui->listWidget->repaint();
-    //                    update();
-    //                    ui->listWidget->viewport()->update();
-                    }
-                }
-                else{                       // 已全部读取完视频帧流
-                    QMessageBox::information(this, "监测点视频源状态", "已全部读取完视频帧流");
-                    break;
-                }
-            }
-            detectPoint_group[i]->results->print_new2old();     // 把监测点的历史人流量数据按新到旧的顺序输出
-            namedWindow("Pedestiran Detecting", cv::WINDOW_AUTOSIZE);
-            imshow("Pedestiran Detecting", detectPoint_group[i]->frame);
-            capture.release();
-        }
+        yoloDetectThreads.push_back(new QYoloDetectThread(detectPoint_group[i]));
     }
+    for(int i=0; i<count_detectPoint; i++){
+        yoloDetectThreads[i]->start();
+    }
+    // TODO：写个定时器信号与槽，定时判断数据是否更新，若新 则将数据输出到listWidget显示。判断数据是否更新的方法需要研究，目前想法是，设计一个临时存放最后更新值的数组，若推理得到的最新数据与数组数据相同，则不输出到listWidget
+    mTimer.start(2000);     //2秒
+
+
+//    VideoCapture capture;
+//    Mat frame;
+//    for(int i=0; i<count_detectPoint; i++){
+//        frame = capture.open(detectPoint_group[i]->sourcePath.toStdString());       // 读取该监测点的视频源
+//        if(!capture.isOpened()){    // 无法打开视频
+//            QMessageBox::warning(this, "警告", "无法打开监测点视频源，请编辑监测点视频源后重新开始检测");
+//    //        return;
+//        }
+//        else{                       // 成功打开视频
+//            int count=0, frameRate=20, result;     // 计数、帧数截取间隔、检测结果
+//            while(true){
+//                if(capture.read(frame)){    // 视频帧流还未全部读取完
+//                    count++;
+//                    if(count % frameRate == 0){     // 够钟截取一帧
+//                        detectPoint_group[i]->frame = frame.clone();    // 将视频流当前帧 深拷贝给 该监测点作为模型输入的帧
+//                        qDebug() << "读取" << count / frameRate << "帧";
+//                        // TODO: 模型推理，存储检测结果
+//                        result = detectPoint_group[i]->detect(detectPoint_group[i]->frame);
+//                        // 优化：detect()里大部分时候不需要调用drawPred()，想办法把detect()改写成可以分离出drawPred()的形式
+//                        detectPoint_group[i]->results->insert(result);
+//                        ui->listWidget->addItem("监测点_" + detectPoint_group[i]->label + ": "+ QString::number(result) + "人");
+//    //                    ui->listWidget->repaint();
+//    //                    update();
+//    //                    ui->listWidget->viewport()->update();
+//                    }
+//                }
+//                else{                       // 已全部读取完视频帧流
+//                    QMessageBox::information(this, "监测点视频源状态", "已全部读取完视频帧流");
+//                    break;
+//                }
+//            }
+//            detectPoint_group[i]->results->print_new2old();     // 把监测点的历史人流量数据按新到旧的顺序输出
+//            namedWindow("Pedestiran Detecting", cv::WINDOW_AUTOSIZE);
+//            imshow("Pedestiran Detecting", detectPoint_group[i]->frame);
+//            capture.release();
+//        }
+//    }
 }
 
 
@@ -278,3 +290,34 @@ void MapDisplay::updateCheckedDetectPoint(QPoint mousePos)
         break;
     }
 }
+
+void MapDisplay::on_pushButton_endDetect_clicked()
+{
+    mTimer.stop();      // 定时器停止，停止更新数据到listWidget上
+    int returnCode=123;
+    qDebug() << "尝试结束所有线程";
+    for(int i=0; i<count_detectPoint; i++){
+        if(yoloDetectThreads[i]->isRunning()){
+            qDebug() << "线程" << i << "isRunning";
+            yoloDetectThreads[i]->wait();
+            yoloDetectThreads[i]->exit(returnCode);
+            qDebug() << "线程" << i << "returnCode is: " << returnCode;
+        }
+        if(yoloDetectThreads[i]->isFinished()) qDebug() << "线程" << i << "isFinished";
+    }
+    // 经过测试，在线程正在进行时在这里wait()和exit()无法结束它，但当它在run()里自己执行quit()或exit()后，就能结束了
+}
+
+void MapDisplay::on_mTimer_timeout()
+{
+    int result;
+    // TODO：判断是否由数据更新，清空listWidget，将数据输出到listWidget
+    ui->listWidget->clear();
+    for(int i=0; i<count_detectPoint; i++){
+        if(!detectPoint_group[i]->results->isEmpty()) result = detectPoint_group[i]->results->getRear();
+        ui->listWidget->addItem("监测点_" + detectPoint_group[i]->label + ": "+ QString::number(result) + "人");
+    }
+
+}
+
+

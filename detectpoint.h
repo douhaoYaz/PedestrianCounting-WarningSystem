@@ -15,7 +15,7 @@ class DetectPoint : public YOLOv5_Detector
 {
 public:
     DetectPoint(Net_config config);
-    YOLOv5_Detector detector(Net_config config);           // 把YOLOv5_Detector作为基类
+//    YOLOv5_Detector detector(Net_config config);           // 把YOLOv5_Detector作为基类
 
     QString sourcePath;         // 视频源
     bool lable_visible;             // 监测点上方的实时人流量标签是否可见

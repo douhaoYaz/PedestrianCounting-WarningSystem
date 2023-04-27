@@ -7,6 +7,8 @@
 #include <memory>
 #include <cmath>
 #include "dialog_dpinfo.h"
+#include "qyolodetectthread.h"
+#include <QTimer>
 
 namespace Ui {
 class MapDisplay;
@@ -33,6 +35,10 @@ private slots:
 
     void on_pushButton_startDetect_clicked();
 
+    void on_pushButton_endDetect_clicked();
+
+    void on_mTimer_timeout();       // 定时器响应槽函数，connect写在了构造函数中
+
 public slots:
     void receiveData(QString sourcePath, QString pedestrianMaxium, QString label);
 
@@ -46,6 +52,8 @@ private:
 //    int volume_detecting_temp;               // 临时存放 接收到对话框dialog的人流量上限
 //    QString label_temp;                 // 临时存放 接收到对话框dialog的标签名
     int checked_detectPoint = -1;            // 表示当前被选中的监测点序号
+    std::vector<QYoloDetectThread*> yoloDetectThreads;   // 用于YOLO检测的多线程vector容器
+    QTimer mTimer;                          //定时器
 
     void addDetectPoint(QPoint pos);    // 添加监测点
     void startDetect();                 // 开始检测
