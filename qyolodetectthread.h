@@ -5,6 +5,10 @@
 #include "detectpoint.h"
 #include <memory>
 #include <QMutex>
+#include <QMetaType>
+#include <QVariant>
+
+Q_DECLARE_METATYPE(std::shared_ptr<DetectPoint>);   // 将std::shared_ptr<DetectPoint>这个类声明为元类型，才能作为信号与槽的参数传递
 
 class QYoloDetectThread : public QThread
 {
@@ -24,6 +28,14 @@ private:
     // QThread interface
 protected:
     virtual void run() override;
+
+signals:
+//    void warning_flow(std::shared_ptr<DetectPoint> dp);       // 人流量预警信号
+    void warning_flow(QVariant data);       // 人流量预警信号
 };
+
+
+//Q_DECLARE_METATYPE(std::shared_ptr<DetectPoint>);   // 将std::shared_ptr<DetectPoint>这个类声明为元类型，才能作为信号与槽的参数传递
+
 
 #endif // QYOLODETECTTHREAD_H

@@ -118,7 +118,7 @@ namespace xq {
         if (isEmpty()) {
             cout << "queue is empty!" << endl;
         }
-        return base[rear-1];
+        return base[rear-1<0 ? size-1 : rear-1];
     }
 }
 

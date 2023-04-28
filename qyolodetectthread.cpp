@@ -9,6 +9,7 @@ QYoloDetectThread::QYoloDetectThread(QObject *parent) : QThread(parent)
 QYoloDetectThread::QYoloDetectThread(std::shared_ptr<DetectPoint> dp)
 {
     this->dp = dp;
+//    qRegisterMetaType<std::shared_ptr<DetectPoint>>("std::shared_ptr<DetectPoint>");
 }
 
 void QYoloDetectThread::run()
@@ -43,6 +44,13 @@ void QYoloDetectThread::run()
             qDebug() << "读取第" << count/frameRate << "帧";
             result = dp->detect(dp->frame);
             dp->results->insert(result);
+            if(result >= dp->volume_warning && dp->warning_flag == false){   // 若标志值状态为 不需发出预警弹窗
+                QVariant data;
+                data.setValue(dp);
+                emit warning_flow(data);                               // 发射人流量预警信号，参数为该超出人流量上限的监测点智能指针
+                qDebug() << "emit warning_flow";
+                dp->warning_flag = true;                                    // 需要预警弹窗
+            }
             // TODO：将数据加到listWidget，目前想法是用信号与槽，参数有：标签或序号、数据，但感觉开销太大
         }
     }
@@ -52,7 +60,7 @@ void QYoloDetectThread::run()
 //    namedWindow("Pedestiran Detecting", cv::WINDOW_AUTOSIZE);
 //    imshow("Pedestiran Detecting", dp->frame);
     capture.release();
-    msleep(5000);
+//    msleep(5000);
     this->exit();
 
 //    while(!m_stop){

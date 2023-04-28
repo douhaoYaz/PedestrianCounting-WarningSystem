@@ -42,10 +42,13 @@ private slots:
 public slots:
     void receiveData(QString sourcePath, QString pedestrianMaxium, QString label);
 
+//    void warning_handler(std::shared_ptr<DetectPoint> dp);        // 人流量预警槽函数
+    void warning_handler(QVariant data);        // 人流量预警槽函数
+
 private:
     Ui::MapDisplay *ui;
     QString pic;
-    int type_mouseEvent;                // 用于鼠标事件函数中选择执行哪种处理函数，以后可优化为枚举变量，暂时先用整型
+    int type_mouseEvent=0;                // 用于鼠标事件函数中选择执行哪种处理函数，以后可优化为枚举变量，暂时先用整型
     std::vector<std::shared_ptr<DetectPoint>> detectPoint_group;    // 存储 指向监测点的智能指针 的vector容器
     Dialog_dpInfo *dialog;
 //    QString sourcePath_temp;            // 临时存放 接收到对话框dialog的视频源路径

@@ -71,6 +71,9 @@ void MapDisplay::mousePressEvent(QMouseEvent *event)
     if (event->button() == Qt::LeftButton){
         switch (type_mouseEvent)
         {
+        case 0:
+            QMessageBox::warning(this, "警告", "尚未选择要进行的操作");
+            break;
         case 1:     // 添加监测点
 //            if(event->pos().x() >= 190 && event->pos().x() <= 1190 && event->pos().y()>70 && event->pos().y() <= 770){      // 判断所加的点是否在窗口范围内(本来不想加这个判断的，但是switch case语句里不能新建变量，而我需要新建一个变量flag，在新添加的监测点离某监测点距离太近时 取消添加，于是要用一个flag来帮助跳出swich case
 //                int flag=0;
@@ -86,14 +89,16 @@ void MapDisplay::mousePressEvent(QMouseEvent *event)
 //                setDetectPointInfo(count_detectPoint-1);    // 为新添加的监测点设置信息
 //                update();
 //            }
-            updateCheckedDetectPoint(event->pos());
-            if(checked_detectPoint == -1) break;        // 在updateCheckedDetectPoint()函数里对checked_detectPoint进行处理，若为非-1则符合添加条件，若为-1则不符合添加条件
-            addDetectPoint(event->pos());
-            update();
-            qDebug() << "count_detectPoint: " << count_detectPoint;
-            checked_detectPoint = count_detectPoint-1;  // 更新当前选中点为刚刚添加的点
-            setDetectPointInfo(checked_detectPoint);
-            checked_detectPoint = -1;       // 结束前重置为-1复位，表示未选中
+            if(event->pos().x() >= 190 && event->pos().x() <= 1190 && event->pos().y()>70 && event->pos().y() <= 770){      // 判断所加的点是否在窗口范围内
+                updateCheckedDetectPoint(event->pos());
+                if(checked_detectPoint == -1) break;        // 在updateCheckedDetectPoint()函数里对checked_detectPoint进行处理，若为非-1则符合添加条件，若为-1则不符合添加条件
+                addDetectPoint(event->pos());
+                update();
+                qDebug() << "count_detectPoint: " << count_detectPoint;
+                checked_detectPoint = count_detectPoint-1;  // 更新当前选中点为刚刚添加的点
+                setDetectPointInfo(checked_detectPoint);
+                checked_detectPoint = -1;       // 结束前重置为-1复位，表示未选中
+                }
             break;
         case 2:     // 编辑监测点
             // TODO: 判断鼠标事件坐标是否位于某监测点半径之内，若是，则表示选中该监测点，然后弹窗对话框让用户输入该监测点的视频源、人流量上限
@@ -156,6 +161,10 @@ void MapDisplay::startDetect()
     yoloDetectThreads.clear();      // 在一次开始检测之后，若有新增点，就需要清空vector，再重新逐个push_back
     for(int i=0; i<count_detectPoint; i++){
         yoloDetectThreads.push_back(new QYoloDetectThread(detectPoint_group[i]));
+    }
+    for(size_t i=0; i<yoloDetectThreads.size(); i++){
+        qDebug() << "正在connect第" << QString::number(i) << "个线程的人流量预警信号与槽";
+        connect(yoloDetectThreads[i], SIGNAL(warning_flow(QVariant)), this, SLOT(warning_handler(QVariant)), Qt::QueuedConnection);
     }
     for(int i=0; i<count_detectPoint; i++){
         yoloDetectThreads[i]->start();
@@ -310,14 +319,42 @@ void MapDisplay::on_pushButton_endDetect_clicked()
 
 void MapDisplay::on_mTimer_timeout()
 {
-    int result;
-    // TODO：判断是否由数据更新，清空listWidget，将数据输出到listWidget
-    ui->listWidget->clear();
+    int result_temp;
+    if(ui->listWidget->count() >= 5) ui->listWidget->clear();
+    // TODO：判断是否由数据更新，清空listWidget，将数据输出到listWidget。判断数据是否更新的方法需要研究，目前想法是，设计一个临时存放最后更新值的数组，若推理得到的最新数据与数组数据相同，则不输出到listWidget
+    // 看看是否需要优化成：增加一个count_detectTimes检测次数计算，这样就能判断数据是否有更新
+    // 待优化：添加互斥量，读取共享内存
     for(int i=0; i<count_detectPoint; i++){
-        if(!detectPoint_group[i]->results->isEmpty()) result = detectPoint_group[i]->results->getRear();
-        ui->listWidget->addItem("监测点_" + detectPoint_group[i]->label + ": "+ QString::number(result) + "人");
+        if(!detectPoint_group[i]->results->isEmpty()){      // 检测数据非空，可以读取
+            result_temp = detectPoint_group[i]->results->getRear();
+            if(detectPoint_group[i]->result_last != result_temp){        // 判新
+//                ui->listWidget->clear();
+                detectPoint_group[i]->result_last = result_temp;        // 将本次检测数据更新到result_last作为上次检测数据
+                ui->listWidget->addItem("监测点_" + detectPoint_group[i]->label + ": "+ QString::number(result_temp) + "人");
+            }
+        }
+//        if(!detectPoint_group[i]->results->isEmpty())
+//            ui->listWidget->addItem("监测点_" + detectPoint_group[i]->label + ": "+ QString::number(detectPoint_group[i]->results->getRear()) + "人");
+//        if(detectPoint_group[i]->warning_flag == true){     // 需要发出预警
+//            QMessageBox::warning(this, "人流量警告", "监测点_" + detectPoint_group[i]->label + "的人流量已超出上限");
+//            detectPoint_group[i]->warning_flag = false;     // 复位 标志值置为不需要发出预警
+//        }
+
     }
 
 }
 
+
+void MapDisplay::warning_handler(QVariant data)   // 在listWidget上显示的数据有两种情况，一种是一般情况的定时器够钟 若在定时周期内有数据更新则输出到listWidget，另一种是本函数的人流量超出上限预警的情况
+{
+    std::shared_ptr<DetectPoint> dp = data.value<std::shared_ptr<DetectPoint>>();
+    ui->listWidget->addItem("人流量预警：监测点_" + dp->label + ": "+ QString::number(dp->results->getRear()) + "人");
+    qDebug() <<"人流量警告:监测点_" << dp->label << "的人流量已超出上限" << dp->volume_warning << "人";
+
+    if(dp->warning_flag == true){     // 需要发出预警
+        QMessageBox::warning(this, "人流量警告", "监测点_" + dp->label + "的人流量已超出上限" + QString::number(dp->volume_warning) + "人");
+//        qDebug() <<"人流量警告", "监测点_" + dp->label + "的人流量已超出上限" + dp->volume_warning + "人";
+        dp->warning_flag = false;     // 复位 标志值置为不需要发出预警
+    }
+}
 
