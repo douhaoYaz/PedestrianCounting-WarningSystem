@@ -39,6 +39,10 @@ private slots:
 
     void on_mTimer_timeout();       // 定时器响应槽函数，connect写在了构造函数中
 
+    void on_pushButton_continueDetect_clicked();
+
+    void on_pushButton_pauseDetect_clicked();
+
 public slots:
     void receiveData(QString sourcePath, QString pedestrianMaxium, QString label);
 

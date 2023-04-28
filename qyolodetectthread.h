@@ -17,6 +17,10 @@ public:
     explicit QYoloDetectThread(QObject *parent = nullptr);
     QYoloDetectThread(std::shared_ptr<DetectPoint> dp);             // 重载构造函数
 
+    void stopThread();
+    void startDetect();
+    void endDetect();
+
 private:
     QMutex mutex;   // 互斥量
 

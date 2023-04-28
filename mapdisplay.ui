@@ -108,7 +108,7 @@
    <widget class="QPushButton" name="pushButton_startDetect">
     <property name="geometry">
      <rect>
-      <x>720</x>
+      <x>300</x>
       <y>790</y>
       <width>89</width>
       <height>24</height>
@@ -129,6 +129,32 @@
     </property>
     <property name="text">
      <string>结束检测</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_continueDetect">
+    <property name="geometry">
+     <rect>
+      <x>510</x>
+      <y>790</y>
+      <width>89</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>开始/继续</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_pauseDetect">
+    <property name="geometry">
+     <rect>
+      <x>690</x>
+      <y>790</y>
+      <width>89</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>暂停</string>
     </property>
    </widget>
   </widget>

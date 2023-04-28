@@ -18,6 +18,10 @@ MapDisplay::MapDisplay(QWidget *parent) :
     ui->setupUi(this);
 
     connect(&mTimer, SIGNAL(timeout()), this, SLOT(on_mTimer_timeout()));
+
+    ui->pushButton_continueDetect->setEnabled(false);   // 失能“开始/继续”按钮
+    ui->pushButton_pauseDetect->setEnabled(false);       // 失能“暂停”按钮
+    ui->pushButton_endDetect->setEnabled(false);         // 失能“结束检测”按钮
 }
 
 MapDisplay::~MapDisplay()
@@ -123,9 +127,9 @@ void MapDisplay::mousePressEvent(QMouseEvent *event)
             // 考虑是否使用多线程
             // 指定间隔截取视频帧作为模型输入
             // 用一个for循环使每个监测点相继进行推理？
-            string imgpath = "F:/Work and Learn/Projects/QtProject/PedestrianCounting-WarningSystem/bus.jpg";
-            Mat srcimg = imread(imgpath);
-            detectPoint_group[0]->detect(srcimg);
+//            string imgpath = "F:/Work and Learn/Projects/QtProject/PedestrianCounting-WarningSystem/bus.jpg";
+//            Mat srcimg = imread(imgpath);
+//            detectPoint_group[0]->detect(srcimg);
             break;
         }
     }
@@ -158,7 +162,7 @@ void MapDisplay::startDetect()
 //    detectPoint_group[0]->sourcePath = "F:/Work and Learn/Projects/QtProject/PedestrianCounting-WarningSystem/CampusStreet.mp4";
 
 
-    yoloDetectThreads.clear();      // 在一次开始检测之后，若有新增点，就需要清空vector，再重新逐个push_back
+    yoloDetectThreads.clear();      // 在结束一次检测之后，若有新增点，就需要清空vector，再重新逐个push_back。即全部重新创建检测线程
     for(int i=0; i<count_detectPoint; i++){
         yoloDetectThreads.push_back(new QYoloDetectThread(detectPoint_group[i]));
     }
@@ -228,6 +232,10 @@ void MapDisplay::on_pushButton_delDetectPoint_clicked()
 void MapDisplay::on_pushButton_startDetect_clicked()
 {
 //    this->type_mouseEvent = 4;
+    ui->pushButton_startDetect->setEnabled(false);      // 失能“开始检测”按钮
+    ui->pushButton_continueDetect->setEnabled(true);   // 使能“开始/继续”按钮
+    ui->pushButton_pauseDetect->setEnabled(false);       // 失能“暂停”按钮
+    ui->pushButton_endDetect->setEnabled(true);         // 使能“结束检测”按钮
     startDetect();
 }
 
@@ -303,18 +311,24 @@ void MapDisplay::updateCheckedDetectPoint(QPoint mousePos)
 void MapDisplay::on_pushButton_endDetect_clicked()
 {
     mTimer.stop();      // 定时器停止，停止更新数据到listWidget上
-    int returnCode=123;
+//    int returnCode=123;
     qDebug() << "尝试结束所有线程";
     for(int i=0; i<count_detectPoint; i++){
         if(yoloDetectThreads[i]->isRunning()){
-            qDebug() << "线程" << i << "isRunning";
-            yoloDetectThreads[i]->wait();
-            yoloDetectThreads[i]->exit(returnCode);
-            qDebug() << "线程" << i << "returnCode is: " << returnCode;
+//            qDebug() << "线程" << i << "isRunning";
+            yoloDetectThreads[i]->stopThread();
+//            yoloDetectThreads[i]->wait();
+//            yoloDetectThreads[i]->exit(returnCode);
+//            qDebug() << "线程" << i << "returnCode is: " << returnCode;
         }
-        if(yoloDetectThreads[i]->isFinished()) qDebug() << "线程" << i << "isFinished";
+//        if(yoloDetectThreads[i]->isFinished()) qDebug() << "线程" << i << "isFinished";
     }
     // 经过测试，在线程正在进行时在这里wait()和exit()无法结束它，但当它在run()里自己执行quit()或exit()后，就能结束了
+
+    ui->pushButton_startDetect->setEnabled(true);      // 使能“开始检测”按钮
+    ui->pushButton_continueDetect->setEnabled(false);   // 失能“开始/继续”按钮
+    ui->pushButton_pauseDetect->setEnabled(false);       // 失能“暂停”按钮
+    ui->pushButton_endDetect->setEnabled(false);         // 失能“结束检测”按钮
 }
 
 void MapDisplay::on_mTimer_timeout()
@@ -356,5 +370,25 @@ void MapDisplay::warning_handler(QVariant data)   // 在listWidget上显示的�
 //        qDebug() <<"人流量警告", "监测点_" + dp->label + "的人流量已超出上限" + dp->volume_warning + "人";
         dp->warning_flag = false;     // 复位 标志值置为不需要发出预警
     }
+}
+
+
+void MapDisplay::on_pushButton_continueDetect_clicked()
+{
+    for(size_t i=0; i<yoloDetectThreads.size(); i++)
+        yoloDetectThreads[i]->startDetect();
+    ui->pushButton_startDetect->setEnabled(false);      // 失能“开始检测”按钮
+    ui->pushButton_continueDetect->setEnabled(false);   // 失能“开始/继续”按钮
+    ui->pushButton_pauseDetect->setEnabled(true);       // 使能“暂停”按钮
+    ui->pushButton_endDetect->setEnabled(true);         // 使能“结束检测”按钮
+}
+
+
+void MapDisplay::on_pushButton_pauseDetect_clicked()
+{
+    for(size_t i=0; i<yoloDetectThreads.size(); i++)
+        yoloDetectThreads[i]->endDetect();
+    ui->pushButton_continueDetect->setEnabled(true);    // 使能“开始/继续”按钮
+    ui->pushButton_pauseDetect->setEnabled(false);      // 失能“暂停”按钮
 }
 
