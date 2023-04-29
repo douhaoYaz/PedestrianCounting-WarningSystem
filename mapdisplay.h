@@ -43,6 +43,12 @@ private slots:
 
     void on_pushButton_pauseDetect_clicked();
 
+    void on_pushButton_editTitle_clicked();
+
+    void on_pushButton_displayHistory_clicked();
+
+    void on_pushButton_dispalyLast_clicked();
+
 public slots:
     void receiveData(QString sourcePath, QString pedestrianMaxium, QString label);
 

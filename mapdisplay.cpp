@@ -10,6 +10,7 @@
 #include <QDebug>
 #include <opencv2/videoio.hpp>
 #include <QMessageBox>
+#include <QInputDialog>
 
 MapDisplay::MapDisplay(QWidget *parent) :
     QMainWindow(parent),
@@ -131,6 +132,38 @@ void MapDisplay::mousePressEvent(QMouseEvent *event)
 //            Mat srcimg = imread(imgpath);
 //            detectPoint_group[0]->detect(srcimg);
             break;
+        case 5:     // 显示一点历史数据
+            ui->listWidget->clear();
+            updateCheckedDetectPoint(event->pos());
+            if(checked_detectPoint != -1){
+                vector<int> results;
+                if(detectPoint_group[checked_detectPoint]->results->getAll(results) != -1){     // -1表示该点数据队列队空
+                    ui->listWidget->addItem(detectPoint_group[checked_detectPoint]->label + " 历史数据：(最近5条)");
+                    for(size_t i=0; i<results.size(); i++){
+                        if(results[i] >= detectPoint_group[checked_detectPoint]->volume_warning)
+                            ui->listWidget->addItem(QString::number(results[i]) + "人——超过" + detectPoint_group[checked_detectPoint]->label + "的人流量上限");
+                        else
+                            ui->listWidget->addItem(QString::number(results[i]) + "人");
+                    }
+                }
+                else QMessageBox::warning(this, "警告", "该点尚未有数据");
+                checked_detectPoint = -1;   // 复位
+            }
+            break;
+//        case 6:     // 显示全部点最新数据
+//            ui->listWidget->clear();
+//            ui->listWidget->addItem("显示全部点最近一条数据：");
+//            for(size_t i=0; i<detectPoint_group.size(); i++){
+//                if(!detectPoint_group[i]->results->isEmpty()){  // 如果该点数据队列队空
+//                    if(detectPoint_group[i]->results->getRear() >= detectPoint_group[i]->volume_warning)
+//                        ui->listWidget->addItem(detectPoint_group[i]->label + ": " + QString::number(detectPoint_group[i]->results->getRear()) + "人——超过该点人流量上限");
+//                    else
+//                        ui->listWidget->addItem(detectPoint_group[i]->label + ": " + QString::number(detectPoint_group[i]->results->getRear()) + "人");
+//                }
+//                else
+//                    ui->listWidget->addItem(detectPoint_group[i]->label + ": 暂无数据");
+//            }
+//            break;
         }
     }
 }
@@ -139,6 +172,7 @@ void MapDisplay::mousePressEvent(QMouseEvent *event)
 void MapDisplay::on_pushButton_addDetectPoint_clicked()
 {
     this->type_mouseEvent = 1;      // 用于鼠标事件函数中选择执行哪种处理函数
+    ui->statusbar->showMessage("请点击地图上某位置以添加监测点");
 }
 
 void MapDisplay::addDetectPoint(QPoint pos)             // 添加监测点
@@ -161,7 +195,7 @@ void MapDisplay::startDetect()
 
 //    detectPoint_group[0]->sourcePath = "F:/Work and Learn/Projects/QtProject/PedestrianCounting-WarningSystem/CampusStreet.mp4";
 
-
+    type_mouseEvent = 0;            // 将type_mouseEvent复位，避免正在检测的时候鼠标误点到地图添加点删除点这些操作
     yoloDetectThreads.clear();      // 在结束一次检测之后，若有新增点，就需要清空vector，再重新逐个push_back。即全部重新创建检测线程
     for(int i=0; i<count_detectPoint; i++){
         yoloDetectThreads.push_back(new QYoloDetectThread(detectPoint_group[i]));
@@ -208,7 +242,8 @@ void MapDisplay::startDetect()
 //                    break;
 //                }
 //            }
-//            detectPoint_group[i]->results->print_new2old();     // 把监测点的历史人流量数据按新到旧的顺序输出
+//            if(detectPoint_group[i]->results->print_new2old() == -1)     // 把监测点的历史人流量数据按新到旧的顺序输出
+//                qDebug() << "该点数据队列队空";
 //            namedWindow("Pedestiran Detecting", cv::WINDOW_AUTOSIZE);
 //            imshow("Pedestiran Detecting", detectPoint_group[i]->frame);
 //            capture.release();
@@ -220,6 +255,7 @@ void MapDisplay::startDetect()
 void MapDisplay::on_pushButton_editDetectPoint_clicked()
 {
     this->type_mouseEvent = 2;
+    ui->statusbar->showMessage("请选择监测点以修改");
 }
 
 
@@ -237,6 +273,7 @@ void MapDisplay::on_pushButton_startDetect_clicked()
     ui->pushButton_pauseDetect->setEnabled(false);       // 失能“暂停”按钮
     ui->pushButton_endDetect->setEnabled(true);         // 使能“结束检测”按钮
     startDetect();
+    ui->statusbar->showMessage("正在创建线程，请点击“开始/继续”按钮");
 }
 
 void MapDisplay::receiveData(QString sourcePath, QString pedestrianMaxium, QString label)
@@ -297,6 +334,7 @@ void MapDisplay::updateCheckedDetectPoint(QPoint mousePos)
         checked_detectPoint = 0;        // 符合添加条件，只要将checked_detectPoint置为非-1即可，这里就随便选择置0
         break;
     case 2:         // 编辑监测点时 判断是否选中监测点
+    case 5:         // 显示一点历史数据时 判断是否选中监测点
         for(int i=0; i<count_detectPoint; i++){
             if(isin(mousePos, detectPoint_group[i]->pos, 20)){
                 checked_detectPoint = i;
@@ -329,11 +367,12 @@ void MapDisplay::on_pushButton_endDetect_clicked()
     ui->pushButton_continueDetect->setEnabled(false);   // 失能“开始/继续”按钮
     ui->pushButton_pauseDetect->setEnabled(false);       // 失能“暂停”按钮
     ui->pushButton_endDetect->setEnabled(false);         // 失能“结束检测”按钮
+    ui->statusbar->clearMessage();
 }
 
 void MapDisplay::on_mTimer_timeout()
 {
-    int result_temp;
+    int result_temp, allThreadEnd_flag=1;
     if(ui->listWidget->count() >= 5) ui->listWidget->clear();
     // TODO：判断是否由数据更新，清空listWidget，将数据输出到listWidget。判断数据是否更新的方法需要研究，目前想法是，设计一个临时存放最后更新值的数组，若推理得到的最新数据与数组数据相同，则不输出到listWidget
     // 看看是否需要优化成：增加一个count_detectTimes检测次数计算，这样就能判断数据是否有更新
@@ -353,9 +392,12 @@ void MapDisplay::on_mTimer_timeout()
 //            QMessageBox::warning(this, "人流量警告", "监测点_" + detectPoint_group[i]->label + "的人流量已超出上限");
 //            detectPoint_group[i]->warning_flag = false;     // 复位 标志值置为不需要发出预警
 //        }
-
+        if(yoloDetectThreads[i]->isRunning())
+            allThreadEnd_flag = 0;
     }
-
+    if(allThreadEnd_flag == 1){
+        ui->statusbar->showMessage("检测线程已全部结束，可点击结束检测");
+    }
 }
 
 
@@ -381,6 +423,7 @@ void MapDisplay::on_pushButton_continueDetect_clicked()
     ui->pushButton_continueDetect->setEnabled(false);   // 失能“开始/继续”按钮
     ui->pushButton_pauseDetect->setEnabled(true);       // 使能“暂停”按钮
     ui->pushButton_endDetect->setEnabled(true);         // 使能“结束检测”按钮
+    ui->statusbar->showMessage("正在检测");
 }
 
 
@@ -390,5 +433,36 @@ void MapDisplay::on_pushButton_pauseDetect_clicked()
         yoloDetectThreads[i]->endDetect();
     ui->pushButton_continueDetect->setEnabled(true);    // 使能“开始/继续”按钮
     ui->pushButton_pauseDetect->setEnabled(false);      // 失能“暂停”按钮
+}
+
+
+void MapDisplay::on_pushButton_editTitle_clicked()
+{
+    QString s0 = QInputDialog::getText(this, "编辑标题", "输入文本(最多30个字)", QLineEdit::Normal, ui->labelTitle->text());
+    if (s0 != "") ui->labelTitle->setText(s0.left(30));//跳出
+}
+
+
+void MapDisplay::on_pushButton_displayHistory_clicked()
+{
+    type_mouseEvent = 5;
+}
+
+
+void MapDisplay::on_pushButton_dispalyLast_clicked()
+{
+//    type_mouseEvent = 6;
+    ui->listWidget->clear();
+    ui->listWidget->addItem("显示全部点最近一条数据：");
+    for(size_t i=0; i<detectPoint_group.size(); i++){
+        if(!detectPoint_group[i]->results->isEmpty()){  // 如果该点数据队列队空
+            if(detectPoint_group[i]->results->getRear() >= detectPoint_group[i]->volume_warning)
+                ui->listWidget->addItem(detectPoint_group[i]->label + ": " + QString::number(detectPoint_group[i]->results->getRear()) + "人——超过该点人流量上限");
+            else
+                ui->listWidget->addItem(detectPoint_group[i]->label + ": " + QString::number(detectPoint_group[i]->results->getRear()) + "人");
+        }
+        else
+            ui->listWidget->addItem(detectPoint_group[i]->label + ": 暂无数据");
+    }
 }
 

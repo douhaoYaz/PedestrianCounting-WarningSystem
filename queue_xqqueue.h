@@ -3,6 +3,7 @@
 
 
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
@@ -29,9 +30,11 @@ namespace xq {
 
         void print();
 
-        void print_new2old();
+        int print_new2old();
 
         T getRear();
+
+        int getAll(vector<T> &);
     };
 
     template<typename T>
@@ -99,10 +102,10 @@ namespace xq {
     }
 
     template<typename T>
-    void xqQueue<T>::print_new2old(){
+    int xqQueue<T>::print_new2old(){
         if (isEmpty()) {
             cout << "queue is empty!" << endl;
-            return;
+            return -1;      // 队列为空则返回-1表示队空
         }
 
         int traversal = rear;
@@ -119,6 +122,21 @@ namespace xq {
             cout << "queue is empty!" << endl;
         }
         return base[rear-1<0 ? size-1 : rear-1];
+    }
+
+    template<typename  T>
+    int xqQueue<T>::getAll(vector<T> &results){
+        if (isEmpty()) {
+            cout << "queue is empty!" << endl;
+            return -1;      // 队列为空则返回-1表示队空
+        }
+
+        int traversal = rear;
+        while(traversal % size != front){
+            traversal = traversal-1 < 0 ? size-1 : traversal-1;
+            results.push_back(base[traversal]);
+        }
+        return results.size();
     }
 }
 
