@@ -71,3 +71,11 @@ Thumbs.db
 *.dll
 *.exe
 
+
+
+# ------------------------
+*.jfif
+*.jpg
+*.mp4
+*.png
+*.onnx
